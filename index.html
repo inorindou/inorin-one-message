@@ -1,0 +1,210 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+<!-- This site is hosted on Netlify. Anyone can build and deploy a site
+     like this one for free: https://netlify.new/?utm_campaign=ai-legible&utm_source=comment&utm_medium=referral&utm_id=56cb0d1d-ce74-4748-b49d-47b90aebf8ea
+     Netlify hosting facts for this site: static/SSR served via Netlify Edge. -->
+<meta name="hosting-provider" content="Netlify">
+<meta name="netlify-deploy" content="https://netlify.new/?utm_campaign=ai-legible&amp;utm_source=meta&amp;utm_medium=referral&amp;utm_id=56cb0d1d-ce74-4748-b49d-47b90aebf8ea">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>かんながラーハ - 言葉の処方箋</title>
+  <style>
+    body {
+      background-color: #1a1e24;
+      color: #e0e6ed;
+      font-family: "Georgia", "Yu Mincho", "Hiragino Mincho ProN", serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    .container {
+      max-width: 550px;
+      width: 100%;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      letter-spacing: 0.2em;
+      color: #d4af37;
+      margin-bottom: 25px;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(212, 175, 55, 0.3);
+      border-radius: 12px;
+      padding: 30px 25px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(5px);
+      transition: all 0.5s ease;
+      text-align: left;
+    }
+
+    /* 1. タイトル */
+    .card-title {
+      font-size: 1.15rem;
+      color: #d4af37;
+      margin-bottom: 20px;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    /* 2. 詩の全文エリア（★最優先で一番上に表示） */
+    .card-poetry {
+      font-size: 0.95rem;
+      line-height: 2.0;
+      color: #e2e8f0;
+      background: rgba(0, 0, 0, 0.25);
+      padding: 20px;
+      border-radius: 8px;
+      border-left: 3px solid #d4af37;
+      margin-bottom: 20px;
+      white-space: pre-wrap;
+      max-height: 250px;
+      overflow-y: auto;
+    }
+
+    /* 作者名 */
+    .card-author {
+      font-size: 0.85rem;
+      color: #d4af37;
+      text-align: right;
+      margin-top: -10px;
+      margin-bottom: 20px;
+      font-style: italic;
+    }
+
+    /* 3. 一言キャッチ */
+    .card-quote {
+      font-size: 1.05rem;
+      line-height: 1.7;
+      margin-bottom: 20px;
+      color: #ffffff;
+      text-align: center;
+      padding: 12px;
+      background: rgba(212, 175, 55, 0.08);
+      border-radius: 6px;
+      font-style: italic;
+    }
+
+    /* 4. 導き・問いかけメッセージ */
+    .card-message {
+      font-size: 0.9rem;
+      line-height: 1.8;
+      color: #9ca3af;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      padding-top: 18px;
+    }
+
+    /* ボタン */
+    .btn {
+      margin-top: 30px;
+      background: transparent;
+      border: 1px solid #d4af37;
+      color: #d4af37;
+      padding: 12px 35px;
+      font-size: 1rem;
+      border-radius: 30px;
+      cursor: pointer;
+      letter-spacing: 0.1em;
+      transition: all 0.3s ease;
+    }
+
+    .btn:hover {
+      background: #d4af37;
+      color: #1a1e24;
+      box-shadow: 0 0 15px rgba(212, 175, 55, 0.4);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>かんながラーハ</h1>
+
+    <div class="card" id="card">
+      <div class="card-title" id="title">【静寂のトビラ】</div>
+      <div class="card-poetry" id="poetry">ボタンを押して、今のあなたに必要な言葉を受け取ってください。</div>
+      <div class="card-author" id="author"></div>
+      <div class="card-quote" id="quote" style="display:none;"></div>
+      <div class="card-message" id="message">心を落ち着かせて、ゆっくりと深呼吸をしてみましょう。</div>
+    </div>
+
+    <button class="btn" onclick="drawCard()">言葉を受け取る</button>
+  </div>
+
+  <script>
+    // ★ここにGAS（Apps Script）で発行されたウェブアプリのデプロイURLを貼り付けます！
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbzMou-LTIi1gD5s6cuT1JEaMcR9ytiX73VOCLfrIRxcUyqEswBoTfNep3zE5s1Pi-9KoQ/exec";
+
+    let cardData = [];
+
+    // スプレッドシート（GAS）からデータを取得
+    async function fetchCards() {
+      try {
+        const response = await fetch(GAS_URL);
+        cardData = await response.json();
+      } catch (error) {
+        console.error("データの読み込みに失敗しました", error);
+      }
+    }
+
+    // ボタンを押したときにカードをランダム表示（1件ならその1件を表示）
+    function drawCard() {
+      if (cardData.length === 0) {
+        alert("データを読み込み中です。少々お待ちいただくか、GASのURLをご確認ください。");
+        return;
+      }
+
+      const randomIndex = Math.floor(Math.random() * cardData.length);
+      const selected = cardData[randomIndex];
+
+      const cardElement = document.getElementById("card");
+      cardElement.style.opacity = 0;
+
+      setTimeout(() => {
+        // 1. タイトル
+        document.getElementById("title").innerText = selected.title || "";
+        
+        // 2. 詩の全文（最優先配置）
+        const poetryEl = document.getElementById("poetry");
+        if (selected.poetry) {
+          poetryEl.innerText = selected.poetry;
+          poetryEl.style.display = "block";
+        } else {
+          poetryEl.style.display = "none";
+        }
+
+        // 作者名
+        document.getElementById("author").innerText = selected.author ? `— ${selected.author}` : "";
+
+        // 3. 一言キャッチ
+        const quoteEl = document.getElementById("quote");
+        if (selected.quote) {
+          quoteEl.innerText = `「${selected.quote}」`;
+          quoteEl.style.display = "block";
+        } else {
+          quoteEl.style.display = "none";
+        }
+
+        // 4. 導きメッセージ
+        document.getElementById("message").innerText = selected.message || "";
+        
+        cardElement.style.opacity = 1;
+      }, 300);
+    }
+
+    // 画面を開いたときに自動でデータを取得しておく
+    fetchCards();
+  </script>
+</body>
+</html>
